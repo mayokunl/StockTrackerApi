@@ -7,7 +7,7 @@ from google.genai import types
 
 API_KEY = os.environ.get("API_KEY")
 
-GENAI_KEY = "AIzaSyCFqrKH81z6EjJIYpWB3ZFRewYZXf5UTqM"
+GENAI_KEY = os.environ.get("GENAI_KEY")
 
 
 def mode_selector():
@@ -35,6 +35,7 @@ def mode2():
 
     high1 =df1["4. close"].max()
     high2 = df2["4. close"].max()
+
     print("\n AVERAGE")
     print(f"The average of {stock1}: {avg1}")
     print(f"The average of {stock2}: {avg2}")
@@ -47,6 +48,8 @@ def mode2():
         print(f"{stock1} had a greater average then {stock2}, seems to be more stable")
     else:
         print(f"{stock2} had a greater average then {stock1}, seems to be more stable")
+
+
 
 def stock_data(stock):
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={stock}&apikey={API_KEY}'
@@ -84,10 +87,9 @@ def query(df):
     print("\nWhat would you like to know?")
     print("1. View closing prices")
     print("2. View average closing price")
-    print("3. View days where price was above a certain amount")
-    print("4. View highest and lowest closing prices")
-    print("5. View the past 7 days")
-    choice = input("Enter a number (1–5): ")
+    print("3. View highest and lowest closing prices")
+    print("4. View the past 7 days")
+    choice = input("Enter a number (1–4): ")
 
     if choice == "1":
         print(df["4. close"])
@@ -97,16 +99,11 @@ def query(df):
         print(f"Average closing price: {avg:.2f}")
 
     elif choice == "3":
-        threshold = float(input("Enter price threshold: "))
-        filtered = df[df["4. close"] > threshold]
-        print(filtered)
-
-    elif choice == "4":
         high = df["4. close"].max()
         low = df["4. close"].min()
         print(f"Highest closing price: {high}")
         print(f"Lowest closing price: {low}")
-    elif choice == "5":
+    elif choice == "4":
         print(df)
     else:
         print("Invalid choice.")    
