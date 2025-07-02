@@ -4,21 +4,61 @@ from datetime import datetime, timedelta
 import os
 from google import genai
 from google.genai import types
+import sqlite3
 
 API_KEY = os.environ.get("API_KEY")
 
 GENAI_KEY = "AIzaSyCFqrKH81z6EjJIYpWB3ZFRewYZXf5UTqM"
+
+def init_db():
+    conn = sqlite3.connect("stocks.db")
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS stock_data (
+            stock TEXT,
+            date TEXT,
+            open REAL,
+            high REAL,
+            low REAL,
+            close REAL,
+            volume REAL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_to_db(df, stock):
+    conn = sqlite3.connect("stocks.db")
+    c = conn.cursor()
+    for date, row in df.iterrows():
+        c.execute("""
+            INSERT INTO stock_data (stock_symbol, date, open_price, high_price, low_price, close_price, volume)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            stock,
+            date.strftime('%Y-%m-%d'),
+            row["1. open"],
+            row["2. high"],
+            row["3. low"],
+            row["4. close"],
+            row["5. volume"]
+        ))
+    conn.commit()
+    conn.close()
 
 
 def mode_selector():
     print("\nSelect a mode:")
     print("1 - View stock information")
     print("2 - Compare two stocks")
-    return input("Enter 1 or 2: ")
+    print("3 - View saved data from database")
+
+    return input("Enter 1 or 2 or 3: ")
 
 def mode1 ():
     stock = input("Enter stock symbol: ").upper()
     df = stock_data(stock)
+    save_to_db(df, stock)
     query(df)
     print(genai_analysis(stock))
 
@@ -29,6 +69,9 @@ def mode2():
     
     df1 = stock_data(stock1)
     df2 = stock_data(stock2)
+
+    save_to_db(df1, stock1)
+    save_to_db(df2, stock2)
 
     avg1 = df1["4. close"].mean()
     avg2 = df2["4. close"].mean()
@@ -111,15 +154,34 @@ def query(df):
     else:
         print("Invalid choice.")    
 
+def fetch_saved_data(stock):
+    conn = sqlite3.connect("stocks.db")
+    df = pd.read_sql_query("""
+        SELECT * FROM stock_data
+        WHERE stock_symbol = ?
+        ORDER BY date DESC
+        LIMIT 7
+    """, conn, params=(stock,))
+    conn.close()
+    return df
+
+def view_saved_data():
+    stock = input("Enter stock symbol to view saved data: ").upper()
+    df = fetch_saved_data(stock)
+    print(df)
+
 if __name__== "__main__":
     # stock = input("Enter Stock symbol to fetch data : ")
     # df = stock_data(stock)
     # query(df)
     # print(genai_analysis(stock))
+    init_db()
     mode = mode_selector()
     if mode == "1":
         mode1()
     elif mode == "2":
         mode2()
+    elif mode == "3":
+        view_saved_data()
     else:
         print("Invalid selection.")
