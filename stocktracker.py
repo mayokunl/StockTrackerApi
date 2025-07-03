@@ -120,7 +120,7 @@ def mode1 ():
 
 def mode2():
     stock1 = input("Enter the first Stock Symbol : ")
-    stock2 = input("Enter the first Stock Symbol : ")
+    stock2 = input("Enter the Second Stock Symbol : ")
     
     df1 = stock_data(stock1)
     df2 = stock_data(stock2)
@@ -169,7 +169,7 @@ def mode_selector():
     print("2 - Compare two stocks")
     print("3 - View saved data from database")
 
-    return input("Enter 1 or 2 or 3: ")
+    return input("Enter 1, 2 or 3: ")
 
 
 if __name__== "__main__":
