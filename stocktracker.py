@@ -7,20 +7,21 @@ from google.genai import types
 import sqlite3
 
 API_KEY = os.environ.get("API_KEY")
-
 GENAI_KEY = os.environ.get("GENAI_KEY")
+
+
 
 def init_db():
     conn = sqlite3.connect("stocks.db")
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS stock_data (
-            stock TEXT,
+            stock_symbol TEXT,
             date TEXT,
-            open REAL,
-            high REAL,
-            low REAL,
-            close REAL,
+            open_price REAL,
+            high_price REAL,
+            low_price REAL,
+            close_price REAL,
             volume REAL
         )
     """)
@@ -46,68 +47,23 @@ def save_to_db(df, stock):
     conn.commit()
     conn.close()
 
-
-def mode_selector():
-    print("\nSelect a mode:")
-    print("1 - View stock information")
-    print("2 - Compare two stocks")
-    print("3 - View saved data from database")
-
-    return input("Enter 1 or 2 or 3: ")
-
-def mode1 ():
-    stock = input("Enter stock symbol: ").upper()
-    df = stock_data(stock)
-    save_to_db(df, stock)
-    query(df)
-    print(genai_analysis(stock))
-
-
-def mode2():
-    stock1 = input("Enter the first Stock Symbol : ")
-    stock2 = input("Enter the first Stock Symbol : ")
-    
-    df1 = stock_data(stock1)
-    df2 = stock_data(stock2)
-
-    save_to_db(df1, stock1)
-    save_to_db(df2, stock2)
-
-    avg1 = df1["4. close"].mean()
-    avg2 = df2["4. close"].mean()
-
-    high1 =df1["4. close"].max()
-    high2 = df2["4. close"].max()
-
-    print("\n AVERAGE")
-    print(f"The average of {stock1}: {avg1}")
-    print(f"The average of {stock2}: {avg2}")
-    print("\n HIGH")
-    print(f"The high of {stock1}: {high1}")
-    print(f"The high of {stock2}: {high2}")
-
-    print("\n INVESTMENT TIP")
-    if avg1 > avg2:
-        print(f"{stock1} had a greater average then {stock2}, seems to be more stable")
-    else:
-        print(f"{stock2} had a greater average then {stock1}, seems to be more stable")
-
-
-
 def stock_data(stock):
     url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={stock}&apikey={API_KEY}'
     r = requests.get(url)
     data = r.json().get("Time Series (Daily)", {})
-    df = (
-        pd.DataFrame.from_dict(data, orient="index")
-          .astype(float)
-          .rename_axis("date")           
-    )
+    df = pd.DataFrame.from_dict(data, orient="index")
+    df = df.rename(columns={
+        "1. open": "1. open",
+        "2. high": "2. high",
+        "3. low": "3. low",
+        "4. close": "4. close",
+        "5. volume": "5. volume"
+    })
+    df = df.astype(float)
     df.index = pd.to_datetime(df.index)
     df = df.sort_index(ascending=False).head(7)
 
     return df
-
 
 def genai_analysis(stock):
     # Create an genAI client using the key from our environment variable
@@ -151,6 +107,46 @@ def query(df):
     else:
         print("Invalid choice.")    
 
+
+def mode1 ():
+    stock = input("Enter stock symbol: ").upper()
+    df = stock_data(stock)
+    if df.empty:
+        return
+    save_to_db(df, stock)
+    query(df)
+    print(genai_analysis(stock))
+
+
+def mode2():
+    stock1 = input("Enter the first Stock Symbol : ")
+    stock2 = input("Enter the first Stock Symbol : ")
+    
+    df1 = stock_data(stock1)
+    df2 = stock_data(stock2)
+
+    save_to_db(df1, stock1)
+    save_to_db(df2, stock2)
+
+    avg1 = df1["4. close"].mean()
+    avg2 = df2["4. close"].mean()
+
+    high1 =df1["4. close"].max()
+    high2 = df2["4. close"].max()
+
+    print("\n AVERAGE")
+    print(f"The average of {stock1}: {avg1}")
+    print(f"The average of {stock2}: {avg2}")
+    print("\n HIGH")
+    print(f"The high of {stock1}: {high1}")
+    print(f"The high of {stock2}: {high2}")
+
+    print("\n INVESTMENT TIP")
+    if avg1 > avg2:
+        print(f"{stock1} had a greater average then {stock2}, seems to be more stable")
+    else:
+        print(f"{stock2} had a greater average then {stock1}, seems to be more stable")
+
 def fetch_saved_data(stock):
     conn = sqlite3.connect("stocks.db")
     df = pd.read_sql_query("""
@@ -166,6 +162,15 @@ def view_saved_data():
     stock = input("Enter stock symbol to view saved data: ").upper()
     df = fetch_saved_data(stock)
     print(df)
+
+def mode_selector():
+    print("\nSelect a mode:")
+    print("1 - View stock information")
+    print("2 - Compare two stocks")
+    print("3 - View saved data from database")
+
+    return input("Enter 1 or 2 or 3: ")
+
 
 if __name__== "__main__":
     # stock = input("Enter Stock symbol to fetch data : ")
